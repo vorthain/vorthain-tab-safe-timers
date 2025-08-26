@@ -25,13 +25,6 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:ci
 
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: coverage-report
-          path: coverage/
-
   # Only publish on main branch after tests pass
   publish:
     needs: test
