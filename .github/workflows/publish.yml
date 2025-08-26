@@ -1,0 +1,137 @@
+name: Test & Auto-Publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Always run tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # Only publish on main branch after tests pass
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    # Only run on push to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Need full history for version bumping
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get commit message
+        id: commit
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "Commit message: $COMMIT_MSG"
+
+      - name: Determine version bump
+        id: version
+        run: |
+          COMMIT_MSG="${{ steps.commit.outputs.message }}"
+          
+          # Check for [skip] flag
+          if [[ "$COMMIT_MSG" == *"[skip]"* ]] || [[ "$COMMIT_MSG" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping publish due to [skip] flag"
+          # Check for breaking changes
+          elif [[ "$COMMIT_MSG" == *"BREAKING"* ]] || [[ "$COMMIT_MSG" == *"breaking:"* ]] || [[ "$COMMIT_MSG" == *"[breaking]"* ]]; then
+            echo "bump=major" >> $GITHUB_OUTPUT
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Version bump: MAJOR"
+          # Check for features
+          elif [[ "$COMMIT_MSG" == *"feat:"* ]] || [[ "$COMMIT_MSG" == *"feature:"* ]] || [[ "$COMMIT_MSG" == *"feat("* ]]; then
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Version bump: MINOR"
+          # Check for fixes and patches
+          elif [[ "$COMMIT_MSG" == *"fix:"* ]] || [[ "$COMMIT_MSG" == *"bug:"* ]] || [[ "$COMMIT_MSG" == *"patch:"* ]] || [[ "$COMMIT_MSG" == *"fix("* ]]; then
+            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Version bump: PATCH"
+          # Default - don't publish for other commits
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping publish - no version keywords found"
+          fi
+
+      - name: Bump version
+        if: steps.version.outputs.skip == 'false'
+        id: bump
+        run: |
+          npm version ${{ steps.version.outputs.bump }} -m "chore: bump version to %s [skip ci]"
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $VERSION"
+
+      - name: Build package
+        if: steps.version.outputs.skip == 'false'
+        run: |
+          # For pure JS library, just ensure files are ready
+          echo "Pure JS library - no build required"
+          
+      - name: Publish to npm
+        if: steps.version.outputs.skip == 'false'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push changes
+        if: steps.version.outputs.skip == 'false'
+        run: |
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.skip == 'false'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          release_name: Release v${{ steps.bump.outputs.version }}
+          body: |
+            Changes in this release:
+            ${{ steps.commit.outputs.message }}
+          draft: false
+          prerelease: false
