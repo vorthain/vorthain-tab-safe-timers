@@ -14,7 +14,7 @@ jest.config.js
 # Test files
 test/
 tests/
-__tests__/
+src/__tests__/
 *.test.js
 *.spec.js
 coverage/
