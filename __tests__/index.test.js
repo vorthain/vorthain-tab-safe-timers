@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { initTabSafeTimers, destroyTabSafeTimers, getTabSafeTimers } from '../index.js';
+import { initTabSafeTimers, destroyTabSafeTimers, getTabSafeTimers } from '../src/index.js';
 
 describe('TabSafeTimers', () => {
   let originalSetTimeout;
