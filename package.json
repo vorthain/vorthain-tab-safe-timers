@@ -1,6 +1,6 @@
 {
   "name": "@vorthain/tab-safe-timers",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Web Worker-powered timer functions that continue running accurately when browser tabs are in the background",
   "main": "src/index.js",
   "type": "module",
