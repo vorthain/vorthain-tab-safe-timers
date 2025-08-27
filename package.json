@@ -28,10 +28,12 @@
     "vorthain-tab-safe-timers",
     "@vorthain/tab-safe-timers"
   ],
+  "types": "./index.d.ts",
   "files": [
     "src/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "index.d.ts"
   ],
   "scripts": {
     "test": "jest",
