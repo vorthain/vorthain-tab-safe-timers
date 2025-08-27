@@ -45,10 +45,10 @@ git commit -m "chore: update dependencies"
 
 1. **Tests run with coverage** (`npm run test:ci`)
 2. Verifies coverage meets thresholds:
-   - 60% branch coverage
+   - 50% branch coverage
    - 75% function coverage  
-   - 75% line coverage
-   - 75% statement coverage
+   - 70% line coverage
+   - 70% statement coverage
 
 ### For Pushes to Main Branch Only:
 

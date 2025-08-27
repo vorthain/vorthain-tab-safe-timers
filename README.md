@@ -104,30 +104,6 @@ export default function App({ Component, pageProps }) {
 }
 ```
 
-### Vanilla JavaScript
-
-```html
-<!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://unpkg.com/@vorthain/tab-safe-timers/dist/index.umd.min.js"></script>
-  </head>
-  <body>
-    <script>
-      // Initialize
-      TabSafeTimers.initTabSafeTimers();
-
-      // Use timers normally
-      let count = 0;
-      setInterval(() => {
-        document.getElementById('counter').textContent = ++count;
-      }, 1000);
-    </script>
-    <div>Counter: <span id="counter">0</span></div>
-  </body>
-</html>
-```
-
 ## API
 
 ### `initTabSafeTimers()`
